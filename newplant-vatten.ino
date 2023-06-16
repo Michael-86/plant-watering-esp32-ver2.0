@@ -48,8 +48,8 @@ float h = 0;
 
 
 //vatten nivå
-#define trig 14
-#define echo 27
+const int trig 14
+const int echo 27
 int lvl = 0;
 
 // Ljus sensor

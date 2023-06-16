@@ -123,7 +123,7 @@ int readSensor() {
 
 void waterlvl() {
   
-  long t = 0, h = 0, hp = 0;
+  long t = 0, h = 0, lvl = 0;
   
   // Transmitting pulse
   digitalWrite(trig, LOW);

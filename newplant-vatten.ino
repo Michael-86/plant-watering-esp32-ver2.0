@@ -138,12 +138,13 @@ void waterlvl() {
   t2 = pulseIn(echo, HIGH);
   
   // Calculating distance 
-  h2 = t2 / 36;
+  h2 = t2 / 66;
  
   h2 = h2 - 6;  // offset correction
-  h2 = 28 - h2;  // water height, 0 - 50 cm
+  h2 = 44 - h2;  // water height, 0 - 50 cm
   
   lvl = 2 * h2;  // distance in %, 0-100 %
+  Serial.println(lvl);
 }
 
 void readDHTTemperature() {

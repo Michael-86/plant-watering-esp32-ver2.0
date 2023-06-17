@@ -141,7 +141,7 @@ void waterlvl() {
   h2 = t2 / 66;
  
   h2 = h2 - 6;  // offset correction
-  h2 = 44 - h2;  // water height, 0 - 50 cm
+  h2 = 47 - h2;  // water height, 0 - 50 cm
   
   lvl = 2 * h2;  // distance in %, 0-100 %
   Serial.println(lvl);

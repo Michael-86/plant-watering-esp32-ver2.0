@@ -48,8 +48,10 @@ float h = 0;
 
 
 //vatten nivå
-const int trig 14
-const int echo 27
+const int trig = 14;
+const int echo = 27;
+//#define trig 14
+//#define echo 27
 int lvl = 0;
 
 // Ljus sensor
@@ -123,7 +125,7 @@ int readSensor() {
 
 void waterlvl() {
   
-  long t = 0, h = 0;
+  long t2 = 0, h2 = 0;
   
   // Transmitting pulse
   digitalWrite(trig, LOW);
@@ -133,15 +135,15 @@ void waterlvl() {
   digitalWrite(trig, LOW);
   
   // Waiting for pulse
-  t = pulseIn(echo, HIGH);
+  t2 = pulseIn(echo, HIGH);
   
   // Calculating distance 
-  h = t / 30;
+  h2 = t2 / 30;
  
-  h = h - 6;  // offset correction
-  h = 28 - h;  // water height, 0 - 50 cm
+  h2 = h2 - 6;  // offset correction
+  h2 = 28 - h2;  // water height, 0 - 50 cm
   
-  lvl = 2 * h;  // distance in %, 0-100 %
+  lvl = 2 * h2;  // distance in %, 0-100 %
 }
 
 void readDHTTemperature() {
@@ -466,6 +468,7 @@ void loop() {
     readDHTTemperature();
     readDHTHumidity();
     waterlvl();
+
     // if the LED is off turn it on and vice-versa:
     if (autostate == "on" && pump == "off") {
       if (jordfuktighet == "Soil is too wet") {

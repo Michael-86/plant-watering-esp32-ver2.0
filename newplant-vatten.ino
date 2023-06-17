@@ -138,7 +138,7 @@ void waterlvl() {
   t2 = pulseIn(echo, HIGH);
   
   // Calculating distance 
-  h2 = t2 / 30;
+  h2 = t2 / 36;
  
   h2 = h2 - 6;  // offset correction
   h2 = 28 - h2;  // water height, 0 - 50 cm

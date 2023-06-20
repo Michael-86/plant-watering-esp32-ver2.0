@@ -1,4 +1,4 @@
-// Import required libraries
+// bibliotek
 #include "WiFi.h"
 #include "ESPAsyncWebServer.h"
 #include <Adafruit_Sensor.h>
@@ -9,7 +9,7 @@
 //För att få function() att fungera i javascript delen.
 typedef void function;
 
-// Replace with your network credentials
+// Wifi nätverk och lösen
 const char *ssid = "gtfast";
 const char *password = "darktitan01";
 
@@ -20,10 +20,6 @@ const char *PARAM_INPUT_2 = "state";
 const char *http_username = "admin";
 const char *http_password = "admin";
 
-String autostate = "on";
-String pump = "off";
-
-
 // Relä utgång
 const int relay = 13;
 
@@ -31,16 +27,19 @@ const int relay = 13;
 unsigned long previousMillis = 0;
 const long interval = 1000;
 
-#define DHTPIN 4  // Digital pin connected to the DHT sensor
+// Digital pin för DHT sensor
+#define DHTPIN 4  
 
 // Jordfuktighet
 
-/* Change these values based on your calibration values */
+/* Värden för jordfuktighets mätning. Går att kalibrera efter egen vilja */
 #define soilWet 1600  // Define max value we consider soil 'wet'
 #define soilDry 4000  // Define min value we consider soil 'dry'
 
-// Variables
+// Variabler
 String jordfuktighet = "";
+String autostate = "on";
+String pump = "off";
 
 //temperatur och luft fuktighet
 float t = 0;
@@ -62,14 +61,14 @@ String ljusstyrka = "";
 #define sensorPower 12
 #define sensorPin 36
 
-// Uncomment the type of sensor in use:
+// Vilken temperatur och luftfuktighets sensor man använder:
 #define DHTTYPE DHT11  // DHT 11
 //#define DHTTYPE    DHT22     // DHT 22 (AM2302)
 //#define DHTTYPE    DHT21     // DHT 21 (AM2301)
 
 DHT dht(DHTPIN, DHTTYPE);
 
-// Create AsyncWebServer object on port 80
+// Port för AsyncWebServer är 80
 AsyncWebServer server(80);
 
 // Ljus
@@ -78,29 +77,23 @@ void readlight() {
   String RAW = String(analogValue);
 
   if (analogValue < 40) {
-    //Serial.println(" => Dark");
     ljusstyrka = "Dark";
   } else if (analogValue < 800) {
-    //Serial.println(" => Dim");
     ljusstyrka = "Dim";
   } else if (analogValue < 2000) {
-    //Serial.println(" => Light");
     ljusstyrka = "Light";
   } else if (analogValue < 3200) {
-    //Serial.println(" => Bright");
     ljusstyrka = "Bright";
   } else {
-    //Serial.println(" => Very bright");
     ljusstyrka = "Very bright";
   }
 }
 
 // Jordfuktighet
-
 void readsoilmoisture() {
   int moisture = readSensor();
-  Serial.println("readsoil!");
-  // Determine status of our soil
+  //Serial.println("readsoil!");
+  // Bestäm status för vår jord
   if (moisture < soilWet) {
     jordfuktighet = "Soil is too wet";
   } else if (moisture >= soilWet && moisture < soilDry) {
@@ -108,17 +101,16 @@ void readsoilmoisture() {
   } else {
     jordfuktighet = "Soil is too dry";
   }
-  //digitalWrite(sensorPower, LOW);
-  //Serial.println(jordfuktighet);
+
 }
 
 int readSensor() {
-  digitalWrite(sensorPower, HIGH);  // Turn the sensor ON
-  delay(10);                        // Allow power to settle
-  int val = analogRead(sensorPin);  // Read the analog value form sensor
-  digitalWrite(sensorPower, LOW);   // Turn the sensor OFF
-  Serial.println("readsoil2!");
-  return val;  // Return analog moisture value
+  digitalWrite(sensorPower, HIGH);  // Sensor på
+  delay(10);                        // Vänta
+  int val = analogRead(sensorPin);  // Läs sensor värden
+  digitalWrite(sensorPower, LOW);   // sensor av
+  //Serial.println("readsoil2!");
+  return val;  // returnerar sensor värden
 }
 
 // Vatten nivå
@@ -127,34 +119,30 @@ void waterlvl() {
   
   long t2 = 0, h2 = 0;
   
-  // Transmitting pulse
+  // Skicka pulser
   digitalWrite(trig, LOW);
   delayMicroseconds(2);
   digitalWrite(trig, HIGH);
   delayMicroseconds(10);
   digitalWrite(trig, LOW);
   
-  // Waiting for pulse
+  // Vänta på pulsen att stutsa tillbaka
   t2 = pulseIn(echo, HIGH);
   
-  // Calculating distance 
+  // Räkna avstånd
   h2 = t2 / 66;
  
-  h2 = h2 - 6;  // offset correction
-  h2 = 47 - h2;  // water height, 0 - 50 cm
+  h2 = h2 - 6;  // Korrigering av förskjutning
+  h2 = 47 - h2;  // vatten djup, 0 - 50 cm
   
-  lvl = 2 * h2;  // distance in %, 0-100 %
-  Serial.println(lvl);
+  lvl = 2 * h2;  // Avstånd i %, 0-100 %
+  //Serial.println(lvl);
 }
 
 void readDHTTemperature() {
-  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-  // Read temperature as Celsius (the default)
-  // Read temperature as Fahrenheit (isFahrenheit = true)
-  //float t = dht.readTemperature(true);
-  // Check if any reads failed and exit early (to try again).
+//kolla temperatur
   if (isnan(t)) {
-    Serial.println("Failed to read from DHT sensor!");
+    Serial.println("Det gick inte att läsa från DHT-sensorn!");
     t = 0;
   } else {
     t = dht.readTemperature();
@@ -162,9 +150,9 @@ void readDHTTemperature() {
 }
 
 void readDHTHumidity() {
-  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+  // kolla luftfuktighet
   if (isnan(h)) {
-    Serial.println("Failed to read from DHT sensor!");
+    Serial.println("Det gick inte att läsa från DHT-sensorn!");
     h = 0;
   } else {
     h = dht.readHumidity();
@@ -175,6 +163,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="content-type" content="text/html" charset="ISO-8859-1"/>
   <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
   <link rel="icon" href="data:,">
   <style>
@@ -201,7 +190,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   </style>
 </head>
 <body>
-  <h2>ESP32 DHT Server</h2>
+  <h2>Plant irrigation System</h2>
   <p>
     <i class="fas fa-thermometer-half" style="color:#059e8a;"></i> 
     <span class="dht-labels">Temperature</span> 
@@ -234,11 +223,12 @@ const char index_html[] PROGMEM = R"rawliteral(
   %BUTTONPLACEHOLDER%
   </p>
   <p>
-  <input type=button value="Update" onClick="self.location='/update'">
+  <input type=button style="height:50px;width:150px;font-size:35px;" value="Update" onClick="self.location='/update'">
   </p>
   <p>
-  <button onclick="logoutButton()">Logout</button>
+  <button onclick="logoutButton()" style="height:50px;width:150px;font-size:35px;">Logout</button>
   </p>
+  
 </body>
 <script>
 function toggleCheckbox(element) {
@@ -332,9 +322,8 @@ String outputState(int output) {
   }
 }
 
-// Replaces placeholder with DHT values
 String processor(const String &var) {
-  //Serial.println(var);
+
   if (var == "TEMPERATURE") {
     return String(t);
   } else if (var == "HUMIDITY") {
@@ -356,7 +345,7 @@ String processor(const String &var) {
 
 
 void setup() {
-  // Serial port for debugging purposes
+  // Serial port för debugging
   Serial.begin(115200);
 
   pinMode(2, OUTPUT);
@@ -373,7 +362,7 @@ void setup() {
 
   dht.begin();
 
-  // Connect to Wi-Fi
+  // koppla upp till Wi-Fi
   WiFi.begin(ssid, password);
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(false);
@@ -383,7 +372,7 @@ void setup() {
     Serial.println("Connecting to WiFi..");
   }
 
-  // Print ESP32 Local IP Address
+  // Skriver ut Esp32's ip nummer. obs fungerar inte
   Serial.println(WiFi.localIP());
 
   // Route for root / web page
@@ -447,21 +436,19 @@ void setup() {
     }
   });
 
-  // Start ElegantOTA
+  // Starta ElegantOTA. För fjärr uppdatering
   AsyncElegantOTA.begin(&server, "admin", "admin");
 
-  // Start server
+  // Starta server
   server.begin();
 }
 
 void loop() {
-  //char nonting = Serial.read();
 
   unsigned long currentMillis = millis();
 
   if (currentMillis - previousMillis >= interval) {
 
-    // save the last time you blinked the LED
     previousMillis = currentMillis;
     Serial.println(autostate);
     readsoilmoisture();
@@ -470,7 +457,6 @@ void loop() {
     readDHTHumidity();
     waterlvl();
 
-    // if the LED is off turn it on and vice-versa:
     if (autostate == "on" && pump == "off") {
       if (jordfuktighet == "Soil is too wet") {
         digitalWrite(relay, LOW);

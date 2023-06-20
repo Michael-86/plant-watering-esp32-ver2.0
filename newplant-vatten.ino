@@ -77,15 +77,15 @@ void readlight() {
   String RAW = String(analogValue);
 
   if (analogValue < 40) {
-    ljusstyrka = "Dark";
+    ljusstyrka = "Mörkt";
   } else if (analogValue < 800) {
-    ljusstyrka = "Dim";
+    ljusstyrka = "Dunkelt";
   } else if (analogValue < 2000) {
-    ljusstyrka = "Light";
+    ljusstyrka = "Svagt ljus";
   } else if (analogValue < 3200) {
-    ljusstyrka = "Bright";
+    ljusstyrka = "Ljust";
   } else {
-    ljusstyrka = "Very bright";
+    ljusstyrka = "Mycket Ljust";
   }
 }
 
@@ -95,11 +95,11 @@ void readsoilmoisture() {
   //Serial.println("readsoil!");
   // Bestäm status för vår jord
   if (moisture < soilWet) {
-    jordfuktighet = "Soil is too wet";
+    jordfuktighet = "För våt";
   } else if (moisture >= soilWet && moisture < soilDry) {
-    jordfuktighet = "Soil moisture is perfect";
+    jordfuktighet = "Är perfekt";
   } else {
-    jordfuktighet = "Soil is too dry";
+    jordfuktighet = "För torr";
   }
 
 }
@@ -163,7 +163,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="content-type" content="text/html" charset="ISO-8859-1"/>
+  <meta charset="utf-8">
   <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
   <link rel="icon" href="data:,">
   <style>
@@ -190,32 +190,32 @@ const char index_html[] PROGMEM = R"rawliteral(
   </style>
 </head>
 <body>
-  <h2>Plant irrigation System</h2>
+  <h2>Drivhus kontroll panel</h2>
   <p>
     <i class="fas fa-thermometer-half" style="color:#059e8a;"></i> 
-    <span class="dht-labels">Temperature</span> 
+    <span class="dht-labels">Temperatur</span> 
     <span id="temperature">%TEMPERATURE%</span>
     <sup class="units">&deg;C</sup>
   </p>
   <p>
     <i class="fas fa-tint" style="color:#00add6;"></i> 
-    <span class="dht-labels">Humidity</span>
+    <span class="dht-labels">Luft Fuktighet</span>
     <span id="humidity">%HUMIDITY%</span>
     <sup class="units">&percnt;</sup>
   </p>
   <p>
     <i class="fas fa-solid fa-cloud-showers-heavy"></i>
-    <span class="dht-labels">Soilmoisture</span>
+    <span class="dht-labels">Jord fuktighet</span>
     <span id="Soilmoisture">%Soilmoisture%</span>
   </p>
   <p>
     <i class="fas fa-solid fa-lightbulb"></i>
-    <span class="dht-labels">Light </span>
+    <span class="dht-labels">Ljus</span>
     <span id="handleljus">%handleljus%</span>
   </p>
     <p>
     <i class="fas fa-solid fa-water"></i>
-    <span class="dht-labels">Water level</span>
+    <span class="dht-labels">Vatten Nivå</span>
     <span id="vatten">%vatten%</span>
     <sup class="units">&percnt;</sup>
   </p>
@@ -223,12 +223,12 @@ const char index_html[] PROGMEM = R"rawliteral(
   %BUTTONPLACEHOLDER%
   </p>
   <p>
-  <input type=button style="height:50px;width:150px;font-size:35px;" value="Update" onClick="self.location='/update'">
+  <input type=button style="height:50px;width:200px;font-size:35px;" value="Uppdatera" onClick="self.location='/update'">
   </p>
   <p>
-  <button onclick="logoutButton()" style="height:50px;width:150px;font-size:35px;">Logout</button>
+  <button onclick="logoutButton()" style="height:50px;width:200px;font-size:35px;">Logga ut</button>
   </p>
-  
+
 </body>
 <script>
 function toggleCheckbox(element) {
@@ -336,8 +336,8 @@ String processor(const String &var) {
     return String(lvl);
   } else if (var == "BUTTONPLACEHOLDER") {
     String buttons = "";
-    buttons += "<h4>Auto mode ON - Auto mode OFF</h4><label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this)\" id=\"2\" " + outputState(2) + "><span class=\"slider\"></span></label>";
-    buttons += "<h4>Pump OFF - Pump ON</h4><label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this)\" id=\"33\" " + outputState(33) + "><span class=\"slider\"></span></label>";
+    buttons += "<h4>Auto läge PÅ - Auto läge AV</h4><label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this)\" id=\"2\" " + outputState(2) + "><span class=\"slider\"></span></label>";
+    buttons += "<h4>Pump AV - Pump PÅ</h4><label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this)\" id=\"33\" " + outputState(33) + "><span class=\"slider\"></span></label>";
     return buttons;
   }
   return String();
@@ -458,11 +458,11 @@ void loop() {
     waterlvl();
 
     if (autostate == "on" && pump == "off") {
-      if (jordfuktighet == "Soil is too wet") {
+      if (jordfuktighet == "För våt") {
         digitalWrite(relay, LOW);
-      } else if (jordfuktighet == "Soil moisture is perfect") {
+      } else if (jordfuktighet == "Är perfekt") {
         digitalWrite(relay, LOW);
-      } else if (jordfuktighet == "Soil is too dry" && ljusstyrka == "Dim" || ljusstyrka == "Dark") {
+      } else if (jordfuktighet == "För torr" && ljusstyrka == "Dunkelt" || ljusstyrka == "Mörkt") {
         digitalWrite(relay, HIGH);
       } else {
         digitalWrite(relay, LOW);

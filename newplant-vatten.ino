@@ -61,6 +61,11 @@ String ljusstyrka = "";
 #define sensorPower 12
 #define sensorPin 36
 
+//raw data
+int h3 = 0;
+int ljusraw = 0;
+int jordfuktdata = 0;
+
 // Vilken temperatur och luftfuktighets sensor man använder:
 #define DHTTYPE DHT11  // DHT 11
 //#define DHTTYPE    DHT22     // DHT 22 (AM2302)
@@ -75,6 +80,7 @@ AsyncWebServer server(80);
 void readlight() {
   int analogValue = analogRead(LIGHT_SENSOR_PIN);
   String RAW = String(analogValue);
+  ljusraw = analogValue;
 
   if (analogValue < 40) {
     ljusstyrka = "Mörkt";
@@ -92,6 +98,7 @@ void readlight() {
 // Jordfuktighet
 void readsoilmoisture() {
   int moisture = readSensor();
+  jordfuktdata = moisture;
   //Serial.println("readsoil!");
   // Bestäm status för vår jord
   if (moisture < soilWet) {
@@ -130,12 +137,13 @@ void waterlvl() {
   t2 = pulseIn(echo, HIGH);
   
   // Räkna avstånd
-  h2 = t2 / 66;
+  h2 = t2 / 58 - 25;
  
-  h2 = h2 - 6;  // Korrigering av förskjutning
-  h2 = 47 - h2;  // vatten djup, 0 - 50 cm
+  h2 = h2 - 4;  // Korrigering av förskjutning
+  h2 = 24 - h2;  // vatten djup, 0 - 50 cm
   
   lvl = 2 * h2;  // Avstånd i %, 0-100 %
+  h3 = h2;
   //Serial.println(lvl);
 }
 
@@ -221,6 +229,9 @@ const char index_html[] PROGMEM = R"rawliteral(
   </p>
   <p>
   %BUTTONPLACEHOLDER%
+  </p>
+  <p>
+  <input type=button style="height:50px;width:200px;font-size:35px;" value="Rådata" onClick="self.location='/raw'">
   </p>
   <p>
   <input type=button style="height:50px;width:200px;font-size:35px;" value="Uppdatera" onClick="self.location='/update'">
@@ -314,6 +325,142 @@ const char logout_html[] PROGMEM = R"rawliteral(
 </html>
 )rawliteral";
 
+const char rawdata_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE HTML><html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8">
+  <style>
+    html {
+     font-family: Arial;
+     display: inline-block;
+     margin: 0px auto;
+     text-align: center;
+    }
+    h2 { font-size: 3.0rem; }
+    p { font-size: 3.0rem; }
+    .units { font-size: 1.2rem; }
+    .dht-labels{
+      font-size: 1.5rem;
+      vertical-align:middle;
+      padding-bottom: 15px;
+      }
+    .switch {position: relative; display: inline-block; width: 120px; height: 68px} 
+    .switch input {display: none}
+    .slider {position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; border-radius: 6px}
+    .slider:before {position: absolute; content: ""; height: 52px; width: 52px; left: 8px; bottom: 8px; background-color: #fff; -webkit-transition: .4s; transition: .4s; border-radius: 3px}
+    input:checked+.slider {background-color: #b30000}
+    input:checked+.slider:before {-webkit-transform: translateX(52px); -ms-transform: translateX(52px); transform: translateX(52px)}
+  </style>
+</head>
+<body>
+  <h2>Rådata panel</h2>
+  <p>
+    <span class="dht-labels">Temperatur</span> 
+    <span id="temperature">%TEMPERATURE%</span>
+    <sup class="units">&deg;C</sup>
+  </p>
+  <p>
+    <span class="dht-labels">Luft Fuktighet</span>
+    <span id="humidity">%HUMIDITY%</span>
+    <sup class="units">&percnt;</sup>
+  </p>
+  <p>
+    <span class="dht-labels">Jord fuktighet</span>
+    <span id="Soilmoisture2">%Soilmoisture2%</span>
+  </p>
+  <p>
+    <span class="dht-labels">Ljus</span>
+    <span id="handleljus2">%handleljus2%</span>
+  </p>
+    <p>
+    <span class="dht-labels">Vatten Nivå</span>
+    <span id="vatten2">%vatten2%</span>
+  </p>
+
+  <p>
+  <input type=button style="height:50px;width:200px;font-size:35px;" value="Uppdatera" onClick="self.location='/update'">
+  </p>
+  <p>
+  <input type=button style="height:50px;width:200px;font-size:35px;" value="Tillbaka" onClick="self.location='/'">
+  </p>
+  <p>
+  <button onclick="logoutButton()" style="height:50px;width:200px;font-size:35px;">Logga ut</button>
+  </p>
+
+</body>
+<script>
+function toggleCheckbox(element) {
+  var xhr = new XMLHttpRequest();
+  if(element.checked){ xhr.open("GET", "/update2?output="+element.id+"&state=1", true); }
+  else { xhr.open("GET", "/update2?output="+element.id+"&state=0", true); }
+  xhr.send();
+  }
+setInterval(function ( ) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("temperature").innerHTML = this.responseText;
+    }
+  };
+  xhttp.open("GET", "/temperature", true);
+  xhttp.send();
+}, 10000 ) ;
+
+setInterval(function ( ) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("humidity").innerHTML = this.responseText;
+    }
+  };
+  xhttp.open("GET", "/humidity", true);
+  xhttp.send();
+}, 10000 ) ;
+
+setInterval(function ( ) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("Soilmoisture2").innerHTML = this.responseText;
+    }
+  };
+  xhttp.open("GET", "/Soilmoisture2", true);
+  xhttp.send();
+}, 10000 ) ;
+
+setInterval(function ( ) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("handleljus2").innerHTML = this.responseText;
+    }
+  };
+  xhttp.open("GET", "/handleljus2", true);
+  xhttp.send();
+}, 10000 ) ;
+
+setInterval(function ( ) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("vatten2").innerHTML = this.responseText;
+    }
+  };
+  xhttp.open("GET", "/vatten2", true);
+  xhttp.send();
+}, 10000 ) ;
+
+function logoutButton() {
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", "/logout", true);
+  xhr.send();
+  setTimeout(function(){ window.open("/logged-out","_self"); }, 1000);
+}
+
+</script>
+</html>)rawliteral";
+
 String outputState(int output) {
   if (digitalRead(output)) {
     return "checked";
@@ -334,6 +481,12 @@ String processor(const String &var) {
     return String(ljusstyrka);
     } else if (var == "vatten") {
     return String(lvl);
+  } else if (var == "Soilmoisture2") {
+    return String(jordfuktdata);
+  } else if (var == "handleljus2") {
+    return String(ljusraw);
+    } else if (var == "vatten2") {
+    return String(h3);
   } else if (var == "BUTTONPLACEHOLDER") {
     String buttons = "";
     buttons += "<h4>Auto läge PÅ - Auto läge AV</h4><label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this)\" id=\"2\" " + outputState(2) + "><span class=\"slider\"></span></label>";
@@ -388,6 +541,9 @@ void setup() {
   server.on("/logged-out", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send_P(200, "text/html", logout_html, processor);
   });
+  server.on("/raw", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send_P(200, "text/html", rawdata_html, processor);
+  });  
   server.on("/temperature", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send_P(200, "text/plain", String(t).c_str());
   });
@@ -402,6 +558,15 @@ void setup() {
   });
     server.on("/vatten", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send_P(200, "text/plain", String(lvl).c_str());
+  });
+  server.on("/Soilmoisture2", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send_P(200, "text/plain", String(jordfuktdata).c_str());
+  });
+  server.on("/handleljus2", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send_P(200, "text/plain", String(ljusraw).c_str());
+  });
+    server.on("/vatten2", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send_P(200, "text/plain", String(h3).c_str());
   });
   // Send a GET request to <ESP_IP>/update?output=<inputMessage1>&state=<inputMessage2>
   server.on("/update2", HTTP_GET, [](AsyncWebServerRequest *request) {

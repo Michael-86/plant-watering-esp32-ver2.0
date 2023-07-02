@@ -6,6 +6,8 @@
 #include <AsyncElegantOTA.h>
 #include <AsyncTCP.h>
 
+#include <NewPing.h>
+
 //För att få function() att fungera i javascript delen.
 typedef void function;
 
@@ -34,7 +36,7 @@ const long interval = 1000;
 
 /* Värden för jordfuktighets mätning. Går att kalibrera efter egen vilja */
 #define soilWet 1600  // Define max value we consider soil 'wet'
-#define soilDry 4000  // Define min value we consider soil 'dry'
+#define soilDry 3200  // Define min value we consider soil 'dry'
 
 // Variabler
 String jordfuktighet = "";
@@ -45,13 +47,19 @@ String pump = "off";
 float t = 0;
 float h = 0;
 
+// Constants to define the tank
+const int tank1Full = 3;      // depth measured when tank 1 is full
+const int tank1Empty = 23;   // depth measured when tank 1 is empty
+const int maxDistance = 26;  // Sets a maximum distance for the sensor object N.B. must be greater than the empty value
 
 //vatten nivå
-const int trig = 14;
-const int echo = 27;
-//#define trig 14
-//#define echo 27
 int lvl = 0;
+
+#define TRIGGER_PIN  14  // Arduino pin tied to trigger pin on the ultrasonic sensor.
+#define ECHO_PIN     27  // Arduino pin tied to echo pin on the ultrasonic sensor.
+#define MAX_DISTANCE 200 // Maximum distance we want to ping for (in centimeters). Maximum sensor distance is rated at 400-500cm.
+
+NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE); // NewPing setup of pins and maximum distance.
 
 // Ljus sensor
 #define LIGHT_SENSOR_PIN 39
@@ -65,6 +73,7 @@ String ljusstyrka = "";
 int h3 = 0;
 int ljusraw = 0;
 int jordfuktdata = 0;
+int pumprun = 0;
 
 // Vilken temperatur och luftfuktighets sensor man använder:
 #define DHTTYPE DHT11  // DHT 11
@@ -99,7 +108,6 @@ void readlight() {
 void readsoilmoisture() {
   int moisture = readSensor();
   jordfuktdata = moisture;
-  //Serial.println("readsoil!");
   // Bestäm status för vår jord
   if (moisture < soilWet) {
     jordfuktighet = "För våt";
@@ -116,35 +124,19 @@ int readSensor() {
   delay(10);                        // Vänta
   int val = analogRead(sensorPin);  // Läs sensor värden
   digitalWrite(sensorPower, LOW);   // sensor av
-  //Serial.println("readsoil2!");
   return val;  // returnerar sensor värden
 }
 
 // Vatten nivå
 
 void waterlvl() {
-  
-  long t2 = 0, h2 = 0;
-  
-  // Skicka pulser
-  digitalWrite(trig, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trig, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trig, LOW);
-  
-  // Vänta på pulsen att stutsa tillbaka
-  t2 = pulseIn(echo, HIGH);
-  
-  // Räkna avstånd
-  h2 = t2 / 58 - 25;
- 
-  h2 = h2 - 4;  // Korrigering av förskjutning
-  h2 = 24 - h2;  // vatten djup, 0 - 50 cm
-  
-  lvl = 2 * h2;  // Avstånd i %, 0-100 %
-  h3 = h2;
-  //Serial.println(lvl);
+
+  h3 = sonar.ping_cm();
+
+  lvl = map(h3, tank1Empty, tank1Full, 0, 100);      // Convert the measured distance to a percentage of the tank depth
+
+  delay(50);
+
 }
 
 void readDHTTemperature() {
@@ -368,16 +360,29 @@ const char rawdata_html[] PROGMEM = R"rawliteral(
   <p>
     <span class="dht-labels">Jord fuktighet</span>
     <span id="Soilmoisture2">%Soilmoisture2%</span>
+    <sup class="units">&ohm;</sup>
   </p>
   <p>
     <span class="dht-labels">Ljus</span>
     <span id="handleljus2">%handleljus2%</span>
+    <sup class="units">&ohm;</sup>
   </p>
-    <p>
+  <p>
+    <i class="fas fa-solid fa-water"></i>
     <span class="dht-labels">Vatten Nivå</span>
-    <span id="vatten2">%vatten2%</span>
+    <span id="vatten">%vatten%</span>
+    <sup class="units">&percnt;</sup>
   </p>
-
+  <p>
+    <span class="dht-labels">Distans till vatten.</span>
+    <span id="vatten2">%vatten2%</span>
+    <sup class="units">CM</sup>
+  </p>
+  <p>
+    <span class="dht-labels">Hur många gånger pumpen har körts.</span>
+    <span id="pumprun">%pumprun%</span>
+    <sup class="units">GÅNGER</sup>
+  </p>
   <p>
   <input type=button style="height:50px;width:200px;font-size:35px;" value="Uppdatera" onClick="self.location='/update'">
   </p>
@@ -444,10 +449,33 @@ setInterval(function ( ) {
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("vatten").innerHTML = this.responseText;
+    }
+  };
+  xhttp.open("GET", "/vatten", true);
+  xhttp.send();
+}, 10000 ) ;
+
+
+setInterval(function ( ) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
       document.getElementById("vatten2").innerHTML = this.responseText;
     }
   };
   xhttp.open("GET", "/vatten2", true);
+  xhttp.send();
+}, 10000 ) ;
+
+setInterval(function ( ) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("pumprun").innerHTML = this.responseText;
+    }
+  };
+  xhttp.open("GET", "/pumprun", true);
   xhttp.send();
 }, 10000 ) ;
 
@@ -485,8 +513,10 @@ String processor(const String &var) {
     return String(jordfuktdata);
   } else if (var == "handleljus2") {
     return String(ljusraw);
-    } else if (var == "vatten2") {
+  } else if (var == "vatten2") {
     return String(h3);
+  } else if (var == "pumprun") {
+    return String(pumprun);
   } else if (var == "BUTTONPLACEHOLDER") {
     String buttons = "";
     buttons += "<h4>Auto läge PÅ - Auto läge AV</h4><label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this)\" id=\"2\" " + outputState(2) + "><span class=\"slider\"></span></label>";
@@ -510,8 +540,8 @@ void setup() {
   pinMode(relay, OUTPUT);
   digitalWrite(relay, LOW);
 
-  pinMode(trig, OUTPUT);
-  pinMode(echo, INPUT); 
+  //pinMode(trig, OUTPUT);
+  //pinMode(echo, INPUT); 
 
   dht.begin();
 
@@ -533,7 +563,6 @@ void setup() {
     if (!request->authenticate(http_username, http_password))
       return request->requestAuthentication();
     request->send_P(200, "text/html", index_html, processor);
-    Serial.println("web");
   });
   server.on("/logout", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send(401);
@@ -542,6 +571,8 @@ void setup() {
     request->send_P(200, "text/html", logout_html, processor);
   });
   server.on("/raw", HTTP_GET, [](AsyncWebServerRequest *request) {
+    if (!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
     request->send_P(200, "text/html", rawdata_html, processor);
   });  
   server.on("/temperature", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -567,6 +598,9 @@ void setup() {
   });
     server.on("/vatten2", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send_P(200, "text/plain", String(h3).c_str());
+  });
+    server.on("/pumprun", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send_P(200, "text/plain", String(pumprun).c_str());
   });
   // Send a GET request to <ESP_IP>/update?output=<inputMessage1>&state=<inputMessage2>
   server.on("/update2", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -627,18 +661,24 @@ void loop() {
         digitalWrite(relay, LOW);
       } else if (jordfuktighet == "Är perfekt") {
         digitalWrite(relay, LOW);
-      } else if (jordfuktighet == "För torr" && ljusstyrka == "Dunkelt" || ljusstyrka == "Mörkt") {
+      } else if (jordfuktighet == "För torr" && ljusstyrka == "Dunkelt" || ljusstyrka == "Mörkt" && h3 > 3) {
         digitalWrite(relay, HIGH);
+        pumprun += 1;
       } else {
         digitalWrite(relay, LOW);
       }
     } else {
       digitalWrite(relay, LOW);
     }
-    if (autostate == "off" && pump == "on") {
+    if (autostate == "off" && pump == "on" && h3 > 3) {
       digitalWrite(relay, HIGH);
+      pumprun += 1;
     } else if (autostate == "off" && pump == "off") {
       digitalWrite(relay, LOW);
     }
+    if (h3 < 3)
+    digitalWrite(relay, LOW);
+    autostate == "off";
+    pump == "off";
   }
 }

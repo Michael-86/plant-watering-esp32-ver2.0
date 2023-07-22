@@ -673,12 +673,8 @@ void loop() {
     if (autostate == "off" && pump == "on" && h3 > 3) {
       digitalWrite(relay, HIGH);
       pumprun += 1;
-    } else if (autostate == "off" && pump == "off") {
+    } else if (autostate == "off" && pump == "off" && h3 < 3) {
       digitalWrite(relay, LOW);
     }
-    if (h3 < 3)
-    digitalWrite(relay, LOW);
-    autostate == "off";
-    pump == "off";
   }
 }

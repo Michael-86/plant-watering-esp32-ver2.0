@@ -661,7 +661,7 @@ void loop() {
         digitalWrite(relay, LOW);
       } else if (jordfuktighet == "Är perfekt") {
         digitalWrite(relay, LOW);
-      } else if (jordfuktighet == "För torr" && ljusstyrka == "Dunkelt" || ljusstyrka == "Mörkt" && h3 > 3) {
+      } else if (jordfuktighet == "För torr" && ljusstyrka == "Dunkelt" || ljusstyrka == "Mörkt" && h3 > 23) {
         digitalWrite(relay, HIGH);
         pumprun += 1;
       } else {
@@ -670,10 +670,10 @@ void loop() {
     } else {
       digitalWrite(relay, LOW);
     }
-    if (autostate == "off" && pump == "on" && h3 > 3) {
+    if (autostate == "off" && pump == "on" && h3 > 23) {
       digitalWrite(relay, HIGH);
       pumprun += 1;
-    } else if (autostate == "off" && pump == "off" && h3 < 3) {
+    } else if (autostate == "off" && pump == "off" && h3 < 23) {
       digitalWrite(relay, LOW);
     }
   }

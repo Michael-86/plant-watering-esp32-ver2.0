@@ -30,7 +30,7 @@ unsigned long previousMillis = 0;
 const long interval = 1000;
 
 // Digital pin för DHT sensor
-#define DHTPIN 4  
+#define DHTPIN 4
 
 // Jordfuktighet
 
@@ -48,18 +48,18 @@ float t = 0;
 float h = 0;
 
 // Constants to define the tank
-const int tank1Full = 3;      // depth measured when tank 1 is full
+const int tank1Full = 3;     // depth measured when tank 1 is full
 const int tank1Empty = 23;   // depth measured when tank 1 is empty
 const int maxDistance = 26;  // Sets a maximum distance for the sensor object N.B. must be greater than the empty value
 
 //vatten nivå
 int lvl = 0;
 
-#define TRIGGER_PIN  14  // Arduino pin tied to trigger pin on the ultrasonic sensor.
-#define ECHO_PIN     27  // Arduino pin tied to echo pin on the ultrasonic sensor.
-#define MAX_DISTANCE 200 // Maximum distance we want to ping for (in centimeters). Maximum sensor distance is rated at 400-500cm.
+#define TRIGGER_PIN 14    // Arduino pin tied to trigger pin on the ultrasonic sensor.
+#define ECHO_PIN 27       // Arduino pin tied to echo pin on the ultrasonic sensor.
+#define MAX_DISTANCE 200  // Maximum distance we want to ping for (in centimeters). Maximum sensor distance is rated at 400-500cm.
 
-NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE); // NewPing setup of pins and maximum distance.
+NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);  // NewPing setup of pins and maximum distance.
 
 // Ljus sensor
 #define LIGHT_SENSOR_PIN 39
@@ -70,10 +70,11 @@ String ljusstyrka = "";
 #define sensorPin 36
 
 //raw data
+int minlvl = 21;
 int h3 = 0;
 int ljusraw = 0;
 int jordfuktdata = 0;
-int pumprun = 0;
+String pumprun = "";
 
 // Vilken temperatur och luftfuktighets sensor man använder:
 #define DHTTYPE DHT11  // DHT 11
@@ -116,7 +117,6 @@ void readsoilmoisture() {
   } else {
     jordfuktighet = "För torr";
   }
-
 }
 
 int readSensor() {
@@ -124,7 +124,7 @@ int readSensor() {
   delay(10);                        // Vänta
   int val = analogRead(sensorPin);  // Läs sensor värden
   digitalWrite(sensorPower, LOW);   // sensor av
-  return val;  // returnerar sensor värden
+  return val;                       // returnerar sensor värden
 }
 
 // Vatten nivå
@@ -133,14 +133,13 @@ void waterlvl() {
 
   h3 = sonar.ping_cm();
 
-  lvl = map(h3, tank1Empty, tank1Full, 0, 100);      // Convert the measured distance to a percentage of the tank depth
+  lvl = map(h3, tank1Empty, tank1Full, 0, 100);  // Convert the measured distance to a percentage of the tank depth
 
   delay(50);
-
 }
 
 void readDHTTemperature() {
-//kolla temperatur
+  //kolla temperatur
   if (isnan(t)) {
     Serial.println("Det gick inte att läsa från DHT-sensorn!");
     t = 0;
@@ -379,9 +378,9 @@ const char rawdata_html[] PROGMEM = R"rawliteral(
     <sup class="units">CM</sup>
   </p>
   <p>
-    <span class="dht-labels">Hur många gånger pumpen har körts.</span>
+    <span class="dht-labels">Pumpens läge: </span>
     <span id="pumprun">%pumprun%</span>
-    <sup class="units">GÅNGER</sup>
+    <sup class="units"></sup>
   </p>
   <p>
   <input type=button style="height:50px;width:200px;font-size:35px;" value="Uppdatera" onClick="self.location='/update'">
@@ -507,7 +506,7 @@ String processor(const String &var) {
     return String(jordfuktighet);
   } else if (var == "handleljus") {
     return String(ljusstyrka);
-    } else if (var == "vatten") {
+  } else if (var == "vatten") {
     return String(lvl);
   } else if (var == "Soilmoisture2") {
     return String(jordfuktdata);
@@ -541,7 +540,7 @@ void setup() {
   digitalWrite(relay, LOW);
 
   //pinMode(trig, OUTPUT);
-  //pinMode(echo, INPUT); 
+  //pinMode(echo, INPUT);
 
   dht.begin();
 
@@ -574,7 +573,7 @@ void setup() {
     if (!request->authenticate(http_username, http_password))
       return request->requestAuthentication();
     request->send_P(200, "text/html", rawdata_html, processor);
-  });  
+  });
   server.on("/temperature", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send_P(200, "text/plain", String(t).c_str());
   });
@@ -587,7 +586,7 @@ void setup() {
   server.on("/handleljus", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send_P(200, "text/plain", String(ljusstyrka).c_str());
   });
-    server.on("/vatten", HTTP_GET, [](AsyncWebServerRequest *request) {
+  server.on("/vatten", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send_P(200, "text/plain", String(lvl).c_str());
   });
   server.on("/Soilmoisture2", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -596,10 +595,10 @@ void setup() {
   server.on("/handleljus2", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send_P(200, "text/plain", String(ljusraw).c_str());
   });
-    server.on("/vatten2", HTTP_GET, [](AsyncWebServerRequest *request) {
+  server.on("/vatten2", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send_P(200, "text/plain", String(h3).c_str());
   });
-    server.on("/pumprun", HTTP_GET, [](AsyncWebServerRequest *request) {
+  server.on("/pumprun", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send_P(200, "text/plain", String(pumprun).c_str());
   });
   // Send a GET request to <ESP_IP>/update?output=<inputMessage1>&state=<inputMessage2>
@@ -659,22 +658,39 @@ void loop() {
     if (autostate == "on" && pump == "off") {
       if (jordfuktighet == "För våt") {
         digitalWrite(relay, LOW);
+        pumprun = "Off";
       } else if (jordfuktighet == "Är perfekt") {
         digitalWrite(relay, LOW);
-      } else if (jordfuktighet == "För torr" && ljusstyrka == "Dunkelt" || ljusstyrka == "Mörkt" && h3 > 22) {
-        digitalWrite(relay, HIGH);
-        pumprun ++;
+        pumprun = "Off";
+      } else if (jordfuktighet == "För torr" && ljusstyrka == "Dunkelt" || ljusstyrka == "Mörkt") {
+        if (h3 < minlvl) {
+          digitalWrite(relay, HIGH);
+          pumprun = "On";
+        } else if (h3 > minlvl) {
+          digitalWrite(relay, LOW);
+          pumprun = "Off";
+        }
       } else {
         digitalWrite(relay, LOW);
+        pumprun = "Off";
       }
     } else {
       digitalWrite(relay, LOW);
+      pumprun = "Off";
     }
-    if (autostate == "off" && pump == "on" && h3 > 22) {
-      digitalWrite(relay, HIGH);
-      pumprun ++;
-    } else if (autostate == "off" && pump == "off" && h3 < 22) {
+    if (autostate == "off" && pump == "on") {
+      if (h3 < minlvl) {
+        digitalWrite(relay, HIGH);
+        pumprun = "On";
+      } else if (h3 > minlvl) {
+        digitalWrite(relay, LOW);
+        pumprun = "Off";
+      }
+    }
+
+    else if (autostate == "off" && pump == "off") {
       digitalWrite(relay, LOW);
+      pumprun = "Off";
     }
   }
 }

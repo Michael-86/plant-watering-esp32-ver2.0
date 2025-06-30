@@ -148,7 +148,7 @@ void handlePumpControl() {
     strcpy(valveLocation, "Place 1");
     Serial.println("Valve set to Place 1 (0 degrees)");
   } else if (valveToPlace2) {
-    valveServo.write(VALSE_POSITION_2); // Corrected typo: VALVE_POSITION_2
+    valveServo.write(VALVE_POSITION_2); // Corrected typo: VALVE_POSITION_2
     strcpy(valveLocation, "Place 2");
     Serial.println("Valve set to Place 2 (87 degrees)");
   } else {
